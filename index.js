@@ -1,7 +1,12 @@
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+
+
+const { Client, Events, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const clientId = process.env.CLIENT_ID;
+const guildId = process.env.GUILD_ID;
+const discordToken = process.env.DISCORD_TOKEN;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -30,6 +35,24 @@ for (const folder of commandFolders) {
         }
     }
 }
+
+// Convert to JSON for REST
+const commandsJSON = client.commands.map(cmd => cmd.data.toJSON());
+
+const rest = new REST({ version: '10' }).setToken(discordToken);
+
+(async () => {
+    try {
+        console.log(`Started refreshing ${commandsJSON.length} application (/) commands.`);
+        const data = await rest.put(
+            Routes.applicationGuildCommands(clientId, guildId),
+            { body: commandsJSON },
+        );
+        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+    } catch (error) {
+        console.error(error);
+    }
+})();
 
 // Ready event
 client.once(Events.ClientReady, readyClient => {
