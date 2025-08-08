@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js')
 
 const categories = ['Funny', 'Performance', 'Personality', 'Other']
 
@@ -23,6 +23,19 @@ module.exports = {
             content: 'Select a category',
             components: [row],
         })
+
+        const buttonClick = await interaction.channel.awaitMessageComponent({
+            filter: i => categories.includes(i.customId),
+            componentType: ComponentType.Button,
+            time: 30000
+        }).catch(() => null)
+
+        if (!buttonClick) return interaction.followUp({content: 'No category selected.'})
+
+        const chosenCategory = buttonClick.customId
+        await buttonClick.update({ 
+            content: `You selected ${chosenCategory}.`,
+        components: []})
 
     }
 }
