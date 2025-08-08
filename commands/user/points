@@ -1,0 +1,16 @@
+const User = require('../models/User');
+
+module.exports = {
+  name: 'points',
+  description: 'Show your current points',
+  async execute(message) {
+    let user = await User.findOne({ userId: message.author.id });
+
+    if (!user) {
+      user = new User({ userId: message.author.id, points: 0 });
+      await user.save();
+    }
+
+    message.reply(`You have ${user.points} points.`);
+  }
+};

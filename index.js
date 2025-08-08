@@ -1,7 +1,16 @@
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
+const mongoose = require('mongoose');
+const connectDB = require('./database');
+
+// connect to MongoDB
+connectDB();
+
+const token = process.env.DISCORD_TOKEN;
+const guildId = process.env.GUILD_ID;
+const clientId = process.env.CLIENT_ID;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -25,11 +34,30 @@ for (const folder of commandFolders) {
         const command = require(filePath);
         if ('data' in command && 'execute' in command) {
             client.commands.set(command.data.name, command);
+            console.log(`${command.data.name} command added.`)
         } else {
             console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
         }
     }
 }
+
+// Convert to JSON for REST
+const commandsJSON = client.commands.map(cmd => cmd.data.toJSON());
+
+const rest = new REST({ version: '10' }).setToken(token);
+
+(async () => {
+    try {
+        console.log(`Started refreshing ${commandsJSON.length} application (/) commands.`);
+        const data = await rest.put(
+            Routes.applicationGuildCommands(clientId, guildId),
+            { body: commandsJSON },
+        );
+        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+    } catch (error) {
+        console.error(error);
+    }
+})();
 
 // Ready event
 client.once(Events.ClientReady, readyClient => {

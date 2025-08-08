@@ -1,11 +1,19 @@
 const { SlashCommandBuilder } = require('discord.js');
+const User = require('../../models/User');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('server')
-        .setDescription('Provides information about the server'),
-    async execute(interaction) {
-        // interaction.guild is the object representing the guild in which the command was ran
-        await interaction.reply(`This server is ${interaction.guild.name} and has ${interaction.guild.memberCount} members.`)
+  data: new SlashCommandBuilder()
+    .setName('points')
+    .setDescription('Show your current points'),
+
+  async execute(interaction) {
+    let user = await User.findOne({ userId: interaction.user.id });
+
+    if (!user) {
+      user = new User({ userId: interaction.user.id, points: 0 });
+      await user.save();
     }
-}
+
+    await interaction.reply(`You have ${user.points} points.`);
+  }
+};
