@@ -61,7 +61,21 @@ client.once(Events.ClientReady, readyClient => {
 
 // Slash command interaction handling
 client.on(Events.InteractionCreate, async interaction => {
+
+    if (interaction.isModalSubmit()){
+        if (interaction.customId.startsWith('awardModal-')) {
+            const category = interaction.customId.split('-')[1]
+            const awardTitle = interaction.fields.getTextInputValue('awardTitle')
+
+            await interaction.reply({
+                content: `Award saved!\nCategory: ${category}\nAward: ${awardTitle}`,
+                ephemeral: true
+            })
+        }
+    }
+
     if (!interaction.isChatInputCommand()) return;
+
 
     const command = interaction.client.commands.get(interaction.commandName);
     if (!command) {
