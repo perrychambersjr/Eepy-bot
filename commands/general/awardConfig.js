@@ -26,9 +26,7 @@ module.exports = {
         .setName('award-config')
         .setDescription('Configure the award command.'),
     async execute(interaction) {
-        //loop over the category array and check if the category is current in the DB,
-        //if it is not in the DB then add it
-
+  
         categories.forEach(cat => {
             findExisting(cat)
         })
