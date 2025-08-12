@@ -1,0 +1,55 @@
+{
+  "wow_raid": {
+    "name": "WoW Raid",
+    "description": "Create a World of Warcraft raid event",
+    "defaultRoles": ["Tank", "Healer", "DPS"],
+    "maxPlayers": 25,
+    "options": [
+      {
+        "name": "title",
+        "description": "Name of the raid",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "date",
+        "description": "Date of the raid (YYYY-MM-DD)",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "difficulty",
+        "description": "Raid difficulty",
+        "type": "choice",
+        "choices": ["Normal", "Heroic", "Mythic"],
+        "required": true
+      }
+    ]
+  },
+  "osrs": {
+    "name": "OSRS Event",
+    "description": "Create an Old School RuneScape event",
+    "defaultRoles": ["Leader", "Member"],
+    "maxPlayers": null,
+    "options": [
+      {
+        "name": "title",
+        "description": "Name of the event",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "location",
+        "description": "Location of the event",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "gear_requirements",
+        "description": "Any gear requirements",
+        "type": "string",
+        "required": false
+      }
+    ]
+  }
+}

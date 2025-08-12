@@ -1,90 +1,102 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ActionRow } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ActionRow, InteractionCallback } = require('discord.js');
 const Event = require('../../models/Event');
+const eventDetails = require('../../config/event-creation/eventDetails.json')
+
+const command = new SlashCommandBuilder()
+        .setName('new-event')
+        .setDescription('Create a new event of a specific game.');
+
+    // dynamically create subcommands from eventDetails.json
+    Object.entries(eventDetails).forEach(([id, details]) => {
+        command.addSubcommand(sub =>
+            sub
+                .setName(id)
+                .setDescription(details.description)
+        );
+
+        // add extra options from JSON
+        const subcommand = command.options.find(opt => opt.name === id);
+        details.options.forEach(optConfig => {
+            let optionBuilder;
+
+            // Handle option type
+            switch (optConfig.type) {
+                case 'string':
+                    optionBuilder = sub => sub
+                        .addStringOption(option =>
+                            option
+                                .setName(optConfig.name)
+                                .setDescription(optConfig.description)
+                                .setRequired(optConfig.required || false)
+                        );
+                    break;
+
+                case 'integer':
+                    optionBuilder = sub => sub
+                        .addIntegerOption(option =>
+                            option
+                                .setName(optConfig.name)
+                                .setDescription(optConfig.description)
+                                .setRequired(optConfig.required || false)
+                        );
+                    break;
+
+                case 'choice':
+                    optionBuilder = sub => sub
+                        .addStringOption(option =>
+                            option
+                                .setName(optConfig.name)
+                                .setDescription(optConfig.description)
+                                .setRequired(optConfig.required || false)
+                                .addChoices(
+                                    ...optConfig.choices.map(c => ({ name: c, value: c }))
+                                )
+                        );
+                    break;
+            }
+
+            if (optionBuilder) {
+                optionBuilder(subcommand);
+            }
+        });
+    });
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('new-event')
-        .setDescription('Create a new World of Warcraft Raid Event.')
-        .addStringOption(option =>
-            option.setName('title')
-                .setDescription('Title of the raid event')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option.setName('date')
-                .setDescription('UTC date & time (YYYY-MM-DD HH:mm)')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option.setName('roles')
-                .setDescription('Roles with slots, e.g., Tank:2,Healer:2,DPS:6')
-                .setRequired(true)
-        ),
-
+    data: command,
     async execute(interaction) {
-        const title = interaction.options.getString('title');
-        const dateInput = interaction.options.getString('date');
-        const rolesInput = interaction.options.getString('roles');
+        const eventType = interaction.options.getSubcommand();
+        const config = eventDetails[eventType];
 
-        // Parse date
-        const dateUTC = new Date(dateInput + ' UTC');
-        if (isNaN(dateUTC.getTime())) {
-            return interaction.reply({ content: '❌ Invalid date format. Use `YYYY-MM-DD HH:mm` in UTC.', ephemeral: true });
-        }
-
-        // Parse roles input
-        const roles = rolesInput.split(',').map(r => {
-            const [name, slots] = r.split(':');
-            return { name: name.trim(), slots: parseInt(slots) };
+        const eventData = {};
+        config.options.forEach(opt => {
+            let val =
+                opt.type === 'integer'
+                    ? interaction.options.getInteger(opt.name)
+                    : interaction.options.getString(opt.name);
+            eventData[opt.name] = val || null;
         });
 
-        // Generate new eventId
-        const lastEvent = await Event.findOne().sort({ eventId: -1 });
-        const eventId = lastEvent ? lastEvent.eventId + 1 : 1;
-
-        
-        // Create DB entry
+        // insert into db
         const newEvent = new Event({
-            eventId,
             guildId: interaction.guildId,
-            title,
-            dateUTC,
-            roles,
-            signups: [],
-            waitlist: [],
             createdBy: interaction.user.id,
-            reminderSent: false
+            type: eventType,
+            title: eventData.title,
+            description: eventData.description || null,
+            date: eventData.date ? new Date(eventData.date) : null,
+            difficulty: eventData.difficulty || null,
+            location: eventData.location || null,
+            gearRequirements: eventData.gear_requirements || null,
+            level: eventData.level || null,
+            defaultRoles: config.defaultRoles,
+            maxPlayers: config.maxPlayers,
+            signups: []
         });
 
         await newEvent.save();
 
-        // Build embed
-        const embed = new EmbedBuilder()
-            .setTitle(`Raid Signup: ${title}`)
-            .setDescription(`📅 **Date:** <t:${Math.floor(dateUTC.getTime() / 1000)}:F>\n\nClick below to sign up!`)
-            .setFooter({ text: `Event ID: ${eventId}` })
-            .setColor(0x00AE86);
-
-        //console.log(roles);
-
-        // Build buttons
-        // Note: discord button custom Ids can only be a string with no spaces or custom characters, replacing spaces with underscores and
-        // making it all lowercase for consistency.
-        // Todo: Button interaction to actually sign up as a role.
-        const buttons = roles.map(role => (
-            new ButtonBuilder()
-                .setCustomId(`signup_${eventId}_${role.name.toLowerCase().replace(/\s+/g, '_')}`)
-                .setLabel(`${role.name} (${role.slots})`)
-                .setStyle(ButtonStyle.Primary)
-        ));
-
-        const buttonRow = new ActionRowBuilder().addComponents(...buttons); 
-
-        await interaction.channel.send({
-            embeds: [embed],
-            components: [buttonRow]
+        await interaction.reply({
+            content: `✅ Created **${config.name}** event: **${newEvent.title}**\nEvent ID: \`${newEvent._id}\``
         });
-
-        await interaction.reply(`Raid Event ${title} created!`);
     }
 }
