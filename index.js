@@ -44,6 +44,8 @@ for (const folder of commandFolders) {
 // Convert to JSON for REST
 const commandsJSON = client.commands.map(cmd => cmd.data.toJSON());
 
+// Upload slash commands to bot via a REST put request
+// This is necessary otherwise commands won't be visible
 const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
@@ -59,10 +61,19 @@ const rest = new REST({ version: '10' }).setToken(token);
     }
 })();
 
-// Ready event
-client.once(Events.ClientReady, readyClient => {
-    console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-});
+// Register event files
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if(event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args));
+    }
+}
 
 // Slash command interaction handling
 client.on(Events.InteractionCreate, async interaction => {
