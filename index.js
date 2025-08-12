@@ -1,9 +1,12 @@
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, REST, Routes, MessageFlags } = require('discord.js');
 const mongoose = require('mongoose');
 const connectDB = require('./database');
+const Category = require('./models/Category');
+const Award = require('./models/Award');
+const { v4: uuidv4 } = require('uuid')
 
 // connect to MongoDB
 connectDB();
@@ -83,9 +86,18 @@ client.on(Events.InteractionCreate, async interaction => {
             const category = interaction.customId.split('-')[1]
             const awardTitle = interaction.fields.getTextInputValue('awardTitle')
 
+            let cat = await Category.findOne({category: category})
+            let award = new Award({
+                awardId: uuidv4(),
+                title: awardTitle,
+                categoryId: cat.categoryId
+            })
+
+            await award.save()
+
             await interaction.reply({
                 content: `Award saved!\nCategory: ${category}\nAward: ${awardTitle}`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             })
         }
     }
