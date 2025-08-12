@@ -23,6 +23,12 @@
         "type": "choice",
         "choices": ["Normal", "Heroic", "Mythic"],
         "required": true
+      },
+      {
+        "name": "description",
+        "description": "Raid description",
+        "type": "string",
+        "required": true
       }
     ]
   },
@@ -42,6 +48,18 @@
         "name": "location",
         "description": "Location of the event",
         "type": "string",
+        "required": true
+      },
+      {
+        "name": "date",
+        "description": "Date of the event (YYYY-MM-DD)",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "world",
+        "description": "World",
+        "type": "integer",
         "required": true
       },
       {

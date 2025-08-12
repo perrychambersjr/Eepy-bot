@@ -11,7 +11,8 @@ const eventSchema = new mongoose.Schema({
     date: { type: Date },
     difficulty: { type: String }, // for WoW, etc.
     location: { type: String }, // for OSRS, etc.
-    gearRequirements: { type: String }, // optional for certain games
+    gearRequirements: { type: String },
+    world: {type: Number },
 
     // Config values from eventDetails.json
     defaultRoles: [{ type: String }],
